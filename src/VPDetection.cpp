@@ -1,5 +1,8 @@
 #include "VPDetection.h"
+
 #include "time.h"
+#include <vector>
+
 #include <iostream>
 
 using namespace std;
@@ -20,7 +23,7 @@ void VPDetection::run( std::vector<std::vector<double> > &lines, cv::Point2d pp,
 	this->lines = lines;
 	this->pp = pp;
 	this->f = f;
-	this->noiseRatio = 0.5; 
+	this->noiseRatio = 0.5;
 
 	cout<<"get vp hypotheses . . ."<<endl;
 	std::vector<std::vector<cv::Point3d> > vpHypo;
@@ -44,6 +47,11 @@ void VPDetection::run( std::vector<std::vector<double> > &lines, cv::Point2d pp,
 
 	cout<<"total: " <<lines.size()<<"  clusered: "<<clusteredNum;
 	cout<<"   X: "<<clusters[0].size()<<"   Y: "<<clusters[1].size()<<"   Z: "<<clusters[2].size()<<endl;
+
+    cout << "len of vps: " << vps.size() << endl;
+    for (const auto& vp: vps) {
+        cout << vp << endl;
+    }
 }
 
 void VPDetection::getVPHypVia2Lines( std::vector<std::vector<cv::Point3d> > &vpHypo )
@@ -54,7 +62,7 @@ void VPDetection::getVPHypVia2Lines( std::vector<std::vector<cv::Point3d> > &vpH
 
 	double confEfficience = 0.9999;
 	int it = log( 1 - confEfficience ) / log( 1.0 - p );
-	
+
 	int numVp2 = 360;
 	double stepVp2 = 2.0 * CV_PI / numVp2;
 
@@ -79,9 +87,9 @@ void VPDetection::getVPHypVia2Lines( std::vector<std::vector<cv::Point3d> > &vpH
 	}
 
 	// get vp hypothesis for each iteration
-	vpHypo = std::vector<std::vector<cv::Point3d> > ( it * numVp2, 3 );
+	vpHypo = std::vector<std::vector<cv::Point3d> > ( it * numVp2, std::vector<cv::Point3d>(3) );
 	int count = 0;
-	srand((unsigned)time(NULL));  
+	srand((unsigned)time(NULL));
 	for ( int i = 0; i < it; ++ i )
 	{
 		int idx1 = rand() % num;
@@ -123,14 +131,14 @@ void VPDetection::getVPHypVia2Lines( std::vector<std::vector<cv::Point3d> > &vpH
 			if ( vp2(2) == 0.0 ) { vp2(2) = 0.0011; }
 			N = sqrt( vp2(0) * vp2(0) + vp2(1) * vp2(1) + vp2(2) * vp2(2) );
 			vp2 *= 1.0 / N;
-			if ( vp2(2) < 0 ) { vp2 *= -1.0; }		
+			if ( vp2(2) < 0 ) { vp2 *= -1.0; }
 
 			// vp3
 			vp3 = vp1.cross( vp2 );
 			if ( vp3(2) == 0.0 ) { vp3(2) = 0.0011; }
 			N = sqrt( vp3(0) * vp3(0) + vp3(1) * vp3(1) + vp3(2) * vp3(2) );
 			vp3 *= 1.0 / N;
-			if ( vp3(2) < 0 ) { vp3 *= -1.0; }		
+			if ( vp3(2) < 0 ) { vp3 *= -1.0; }
 
 			//
 			vpHypo[count][0] = cv::Point3d( vp1(0), vp1(1), vp1(2) );
@@ -144,7 +152,7 @@ void VPDetection::getVPHypVia2Lines( std::vector<std::vector<cv::Point3d> > &vpH
 
 
 void VPDetection::getSphereGrids( std::vector<std::vector<double> > &sphereGrid )
-{	
+{
 	// build sphere grid with 1 degree accuracy
 	double angelAccuracy = 1.0 / 180.0 * CV_PI;
 	double angleSpanLA = CV_PI / 2.0;
@@ -152,7 +160,7 @@ void VPDetection::getSphereGrids( std::vector<std::vector<double> > &sphereGrid 
 	int gridLA = angleSpanLA / angelAccuracy;
 	int gridLO = angleSpanLO / angelAccuracy;
 
-	sphereGrid = std::vector<std::vector<double> >( gridLA, gridLO );
+	sphereGrid = std::vector<std::vector<double> >( gridLA, std::vector<double>(gridLO) );
 	for ( int i=0; i<gridLA; ++i )
 	{
 		for ( int j=0; j<gridLO; ++j )
@@ -192,18 +200,18 @@ void VPDetection::getSphereGrids( std::vector<std::vector<double> > &sphereGrid 
 			longitude = atan2( X, Y ) + CV_PI;
 
 			LA = int( latitude / angelAccuracy );
-			if ( LA >= gridLA ) 
+			if ( LA >= gridLA )
 			{
 				LA = gridLA - 1;
 			}
 
 			LO = int( longitude / angelAccuracy );
-			if ( LO >= gridLO ) 
+			if ( LO >= gridLO )
 			{
 				LO = gridLO - 1;
 			}
 
-			// 
+			//
 			angleDev = abs( lineInfos[i].orientation - lineInfos[j].orientation );
 			angleDev = min( CV_PI - angleDev, angleDev );
 			if ( angleDev > angelTolerance )
@@ -215,13 +223,14 @@ void VPDetection::getSphereGrids( std::vector<std::vector<double> > &sphereGrid 
 		}
 	}
 
-	// 
+	//
 	int halfSize = 1;
 	int winSize = halfSize * 2 + 1;
 	int neighNum = winSize * winSize;
 
 	// get the weighted line length of each grid
-	std::vector<std::vector<double> > sphereGridNew( gridLA, gridLO );
+	std::vector<std::vector<double> > sphereGridNew( gridLA, std::vector<double>(gridLO) );
+
 	for ( int i=halfSize; i<gridLA-halfSize; ++i )
 	{
 		for ( int j=halfSize; j<gridLO-halfSize; ++j )
@@ -250,7 +259,7 @@ void VPDetection::getBestVpsHyp( std::vector<std::vector<double> > &sphereGrid, 
 	std::vector<double> lineLength( num, 0.0 );
 	for ( int i = 0; i < num; ++ i )
 	{
-		std::vector<cv::Point2d> vpLALO( 3 ); 
+		std::vector<cv::Point2d> vpLALO( 3 );
 		for ( int j = 0; j < 3; ++ j )
 		{
 			if ( vpHypo[i][j].z == 0.0 )
@@ -266,13 +275,13 @@ void VPDetection::getBestVpsHyp( std::vector<std::vector<double> > &sphereGrid, 
 			double longitude = atan2( vpHypo[i][j].x, vpHypo[i][j].y ) + CV_PI;
 
 			int gridLA = int( latitude / oneDegree );
-			if ( gridLA == 90 ) 
+			if ( gridLA == 90 )
 			{
 				gridLA = 89;
 			}
-			
+
 			int gridLO = int( longitude / oneDegree );
-			if ( gridLO == 360 ) 
+			if ( gridLO == 360 )
 			{
 				gridLO = 359;
 			}
@@ -303,7 +312,7 @@ void VPDetection::lines2Vps( double thAngle, std::vector<cv::Point3d> &vps, std:
 	clusters.resize( 3 );
 
 	//get the corresponding vanish points on the image plane
-	std::vector<cv::Point2d> vp2D( 3 ); 
+	std::vector<cv::Point2d> vp2D( 3 );
 	for ( int i = 0; i < 3; ++ i )
 	{
 		vp2D[i].x =  vps[i].x * f / vps[i].z + pp.x;

@@ -2,8 +2,9 @@
 #define _VP_DETECTION_H_
 #pragma once
 
-#include <stdio.h>
-#include <opencv2/opencv.hpp> 
+#include <vector>
+
+#include <opencv2/opencv.hpp>
 
 struct LineInfo
 {

@@ -4,6 +4,9 @@ extern "C"
 };
 #include "VPDetection.h"
 
+#include <opencv2/imgproc/imgproc_c.h>
+#include <opencv2/core/types_c.h>
+
 using namespace std;
 using namespace cv;
 
@@ -65,9 +68,9 @@ void drawClusters( cv::Mat &img, std::vector<std::vector<double> > &lines, std::
 
 	//draw lines
 	std::vector<cv::Scalar> lineColors( 3 );
-	lineColors[0] = cv::Scalar( 0, 0, 255 );
-	lineColors[1] = cv::Scalar( 0, 255, 0 );
-	lineColors[2] = cv::Scalar( 255, 0, 0 );
+	lineColors[0] = cv::Scalar( 0, 0, 255 );  // red
+	lineColors[1] = cv::Scalar( 0, 255, 0 );  // green
+	lineColors[2] = cv::Scalar( 255, 0, 0 );  // blue
 
 	for ( int i=0; i<lines.size(); ++i )
 	{
@@ -94,24 +97,26 @@ void drawClusters( cv::Mat &img, std::vector<std::vector<double> > &lines, std::
 	}
 }
 
-void main()
+int main(int argc, char* argv[])
 {
-	string inPutImage = "D:\\DevelopCenter\\VanishingPoints\\datasets\\YorkUrbanDB\\P1020171\\P1020171.jpg";
+	string inPutImage(argv[1]);
 
 	cv::Mat image= cv::imread( inPutImage );
 	if ( image.empty() )
 	{
-		printf( "Load image error : %s\n", inPutImage );
+		printf( "Load image error : %s\n", inPutImage.c_str() );
 	}
 
 	// LSD line segment detection
-	double thLength = 30.0;
+	double thLength = 50.0;
 	std::vector<std::vector<double> > lines;
 	LineDetect( image, thLength, lines );
 
 	// Camera internal parameters
-	cv::Point2d pp( 307, 251 );        // Principle point (in pixel)
-	double f = 6.053 / 0.009;          // Focal length (in pixel)
+    cv::Size size = image.size();
+	cv::Point2d pp(size.width * 0.5, size.height * 0.5);        // Principle point (in pixel)
+	double f = std::max(size.width, size.height) * 1.2;          // Focal length (in pixel)
+
 
 	// Vanishing point detection
 	std::vector<cv::Point3d> vps;              // Detected vanishing points (in pixel)
